@@ -88,6 +88,10 @@ class SimpleNavigationGoals:
         # goal_pose.pose.pose.position.y = input("Rentrez la position en y :")
         # goal_pose.theta = input("Rentrez l'angle :")
 
+        goal_pose.pose.pose.position.x = x
+        goal_pose.pose.pose.position.y = y
+        goal_pose.pose.pose.orientation = theta
+
         # Definition tolerance --> gestion de l'espace proche
         distance_tolerance = 0.1
 
@@ -99,7 +103,7 @@ class SimpleNavigationGoals:
         #     )
         # )
 
-        # print("Lancement...")
+        print("Lancement...")
 
         while self.distance(goal_pose) >= distance_tolerance:
 
