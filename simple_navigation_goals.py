@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 import rospy
+import sys
 from math import pow, atan2, sqrt
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, Quaternion
 
@@ -12,7 +13,7 @@ class TurtleBot:
         # Using publisher to edit linear and angular velocity
         self.velocity_publisher = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
-        # Uing publisher to edit pose2D
+        # Uing publisher to edit pose
         self.pose_subscriver = rospy.Subscriber(
             "/turtlebot3/pose", PoseWithCovarianceStamped, self.update_pose,
         )
@@ -22,18 +23,18 @@ class TurtleBot:
 
     def update_pose(self, data):
         self.pose = data
-        self.pose.pose.point.x = round(self.pose.pose.point.x, 4)
-        self.pose.pose.point.y = round(self.pose.pose.point.y, 4)
-        self.pose.pose.quaternion.x = round(self.pose.pose.quaternion.x, 4)
-        self.pose.pose.quaternion.y = round(self.pose.pose.quaternion.y, 4)
-        self.pose.pose.quaternion.z = round(self.pose.pose.quaternion.z, 4)
-        self.pose.pose.quaternion.w = round(self.pose.pose.quaternion.w, 4)
+        self.pose.pose.pose.position.x = round(self.pose.pose.pose.position.x, 4)
+        self.pose.pose.pose.position.y = round(self.pose.pose.pose.position.y, 4)
+        self.pose.pose.pose.orientation.x = round(self.pose.pose.pose.orientation.x, 4)
+        self.pose.pose.pose.orientation.y = round(self.pose.pose.pose.orientation.y, 4)
+        self.pose.pose.pose.orientation.z = round(self.pose.pose.pose.orientation.z, 4)
+        self.pose.pose.pose.orientation.w = round(self.pose.pose.pose.orientation.w, 4)
 
     def distance(self, goal_pose):
         # distance entre la position actuelle et le goal
         return sqrt(
-            pow((goal_pose.pose.pose.point.x - self.pose.pose.point.x), 2)
-            + pow((goal_pose.pose.pose.point.y - self.pose.pose.point.y), 2)
+            pow((goal_pose.pose.pose.position.x - self.pose.pose.pose.position.x), 2)
+            + pow((goal_pose.pose.pose.position.y - self.pose.pose.pose.position.y), 2)
         )
 
     def line_speed(self, goal_pose, constant=0.1):
@@ -43,18 +44,13 @@ class TurtleBot:
     def steering_angle(self, goal_pose):
         # Definition angle rotation
         return atan2(
-            goal_pose.pose.pose.point.y - self.pose.pose.point.y,
-            goal_pose.pose.pose.point.x - self.pose.pose.point.x,
+            goal_pose.pose.pose.position.y - self.pose.pose.pose.position.y,
+            goal_pose.pose.pose.position.x - self.pose.pose.pose.position.x,
         )
 
-    # def quaternion_to_euler(self):
-    #     x = self.pose.pose.pose.quaternion.x
-    #     y = self.pose.pose.pose.quaternion.y
-    #     z = self.pose.pose.pose.quaternion.z
-    #     w = self.pose.pose.pose.quaternion.w
-    #     q = Quaternion(x, y, z, w)
-    #     print("quaternion = {}\n".format(q))
-    #     return q
+    def quaternion_to_euler(self):
+
+        return q
 
     def angular_speed(self, goal_pose, constant=0.2):
         # Definie le calcul de la vitesse angulaire
@@ -70,9 +66,9 @@ class TurtleBot:
         goal_pose = PoseWithCovarianceStamped()
 
         # recuperation des informations de l'utilisateur
-        goal_pose.pose.point.x = input("Rentrez la position en x :")
-        goal_pose.y = input("Rentrez la position en y :")
-        goal_pose.theta = input("Rentrez l'angle :")
+        goal_pose.pose.pose.position.x = input("Rentrez la position en x :")
+        goal_pose.pose.pose.position.y = input("Rentrez la position en y :")
+        # goal_pose.theta = input("Rentrez l'angle :")
 
         # Definition tolerance --> gestion de l'espace proche
         distance_tolerance = 0.1
@@ -81,7 +77,7 @@ class TurtleBot:
 
         print(
             "Position du robot: x {}, y {}, theta {}".format(
-                self.pose.pose.pose.point.x, self.pose.pose.pose.point.y, theta,
+                self.pose.pose.pose.position.x, self.pose.pose.pose.position.y, theta,
             )
         )
 
@@ -95,12 +91,16 @@ class TurtleBot:
             #
             print(
                 "Position du robot en x : {}, y : {} theta: {}\n".format(
-                    self.pose.pose.pose.point.x, self.pose.pose.pose.point.y, theta,
+                    self.pose.pose.pose.position.x,
+                    self.pose.pose.pose.position.y,
+                    theta,
                 )
             )
             print(
                 "Position souhaitee : x {}, y {}, theta {}\n".format(
-                    goal_pose.x, goal_pose.y, goal_pose.theta,
+                    goal_pose.pose.pose.position.x,
+                    goal_pose.pose.pose.position.y,
+                    theta,
                 )
             )
 
