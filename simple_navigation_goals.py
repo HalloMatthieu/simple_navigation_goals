@@ -1,21 +1,23 @@
 #! /usr/bin/env python
 import rospy
+import actionlib
+import numpy as np
 import sys
 from math import pow, atan2, sqrt
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, Quaternion
 
 
-class TurtleBot:
+class SimpleNavigationGoals:
     def __init__(self):
         # Creating a node
-        rospy.init_node("turtlebot3_ctl", anonymous=True)
+        # rospy.init_node("turtlebot3_ctl", anonymous=True)
 
         # Using publisher to edit linear and angular velocity
         self.velocity_publisher = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
         # Uing publisher to edit pose
         self.pose_subscriver = rospy.Subscriber(
-            "/turtlebot3/pose", PoseWithCovarianceStamped, self.update_pose,
+            "/amcl_pose", PoseWithCovarianceStamped, self.update_pose,
         )
 
         self.pose = PoseWithCovarianceStamped()
@@ -48,26 +50,42 @@ class TurtleBot:
             goal_pose.pose.pose.position.x - self.pose.pose.pose.position.x,
         )
 
-    def quaternion_to_euler(self):
-
+    def quaternion_to_euler(self, yaw):
+        pitch = 0
+        roll = 0
+        q = (
+            np.cos(roll / 2)
+            * np.cos(pitch / 2)
+            * np.cos(yaw / 2)
+            * np.sin(roll / 2)
+            * np.sin(pitch / 2)
+            * np.sin(yaw / 2)
+        )
         return q
 
     def angular_speed(self, goal_pose, constant=0.2):
         # Definie le calcul de la vitesse angulaire
-        # theta = quaternion_to_euler()
-        theta = 1
+        theta = self.quaternion_to_euler(theta)
         return constant * (self.steering_angle(goal_pose) - theta)
 
-    def goto(self):
+    def _shutdown(self):
+        speed_msg = Twist()
+        rospy.signal_shutdown("Process stoped")
+        speed_msg.linear.x = 0
+        speed_msg.angular.z = 0
+        self.velocity_publisher.publish(speed_msg)
+        rospy.sleep(1)
 
-        # theta = self.quaternion_to_euler()
-        theta = 1
+    def go_to(self, x, y, theta):
+
+        theta = self.quaternion_to_euler(theta)
+
         # Deplace le robot jusqu'au point voulu
         goal_pose = PoseWithCovarianceStamped()
 
         # recuperation des informations de l'utilisateur
-        goal_pose.pose.pose.position.x = input("Rentrez la position en x :")
-        goal_pose.pose.pose.position.y = input("Rentrez la position en y :")
+        # goal_pose.pose.pose.position.x = input("Rentrez la position en x :")
+        # goal_pose.pose.pose.position.y = input("Rentrez la position en y :")
         # goal_pose.theta = input("Rentrez l'angle :")
 
         # Definition tolerance --> gestion de l'espace proche
@@ -75,34 +93,34 @@ class TurtleBot:
 
         speed_msg = Twist()
 
-        print(
-            "Position du robot: x {}, y {}, theta {}".format(
-                self.pose.pose.pose.position.x, self.pose.pose.pose.position.y, theta,
-            )
-        )
+        # print(
+        #     "Position du robot: x {}, y {}, theta {}".format(
+        #         self.pose.pose.pose.position.x, self.pose.pose.pose.position.y, theta,
+        #     )
+        # )
 
-        print("Lancement...")
+        # print("Lancement...")
 
         while self.distance(goal_pose) >= distance_tolerance:
 
-            print("En cours")
-
-            # Affiche les positions :
+            print("En deplacement ...")
             #
-            print(
-                "Position du robot en x : {}, y : {} theta: {}\n".format(
-                    self.pose.pose.pose.position.x,
-                    self.pose.pose.pose.position.y,
-                    theta,
-                )
-            )
-            print(
-                "Position souhaitee : x {}, y {}, theta {}\n".format(
-                    goal_pose.pose.pose.position.x,
-                    goal_pose.pose.pose.position.y,
-                    theta,
-                )
-            )
+            # # Affiche les positions :
+            # #
+            # print(
+            #     "Position du robot en x : {}, y : {} theta: {}\n".format(
+            #         self.pose.pose.pose.position.x,
+            #         self.pose.pose.pose.position.y,
+            #         theta,
+            #     )
+            # )
+            # print(
+            #     "Position souhaitee : x {}, y {}, theta {}\n".format(
+            #         goal_pose.pose.pose.position.x,
+            #         goal_pose.pose.pose.position.y,
+            #         theta,
+            #     )
+            # )
 
             # Proportionnel controle
 
@@ -122,12 +140,25 @@ class TurtleBot:
             # Edition attente
             self.rate.sleep()
 
+            # Gestion de l'annulation du programme (crl+c)
+            if rospy.is_shutdown():
+                print("Extinction")
+                rospy.on_shutdown("Stop")
+                break
+
+            rospy.spin()
+
         # Arret du robot une fois que le point est atteint
+        print("Je suis arrive")
         speed_msg.linear.x = 0
         speed_msg.angular.z = 0
         self.velocity_publisher.publish(speed_msg)
 
         # Gestion de l'annulation du programme (crl+c)
+        if rospy.is_shutdown():
+            print("Extinction")
+            rospy.on_shutdown("Stop")
+
         rospy.spin()
 
 
@@ -136,6 +167,6 @@ if __name__ == "__main__":
         while not rospy.is_shutdown():
             x = TurtleBot()
             x.goto()
-        rospy.spin()
+        x.shutdown()
     except rospy.ROSInterruptException:
         pass
