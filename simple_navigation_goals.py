@@ -39,7 +39,7 @@ class SimpleNavigationGoals:
             + pow((goal_pose.pose.pose.position.y - self.pose.pose.pose.position.y), 2)
         )
 
-    def line_speed(self, goal_pose, constant=0.1):
+    def line_speed(self, goal_pose, constant=0.5):
         # Definition de la vitesse lineaire
         return constant * self.distance(goal_pose)
 
@@ -65,8 +65,10 @@ class SimpleNavigationGoals:
 
     def angular_speed(self, goal_pose, constant=0.2):
         # Definie le calcul de la vitesse angulaire
-        theta = self.quaternion_to_euler(theta)
-        return constant * (self.steering_angle(goal_pose) - theta)
+        # goal_pose.pose.pose.orientation.w = self.quaternion_to_euler(theta)
+        return constant * (
+            self.steering_angle(goal_pose) - goal_pose.pose.pose.orientation.w
+        )
 
     def _shutdown(self):
         speed_msg = Twist()
@@ -90,7 +92,7 @@ class SimpleNavigationGoals:
 
         goal_pose.pose.pose.position.x = x
         goal_pose.pose.pose.position.y = y
-        goal_pose.pose.pose.orientation = theta
+        goal_pose.pose.pose.orientation.w = theta
 
         # Definition tolerance --> gestion de l'espace proche
         distance_tolerance = 0.1
@@ -132,11 +134,13 @@ class SimpleNavigationGoals:
             speed_msg.linear.x = self.line_speed(goal_pose)
             speed_msg.linear.y = 0
             speed_msg.linear.z = 0
+            print("X : {}".format(speed_msg.linear.x))
 
             # Vitesse angulaire en z
             speed_msg.angular.x = 0
             speed_msg.angular.y = 0
-            speed_msg.angular.z = self.angular_speed(goal_pose)
+            speed_msg.angular.z = self.angular_speed(goal_pose, theta)
+            print("z : {}".format(speed_msg.angular.z))
 
             # Edition notre vitesse
             self.velocity_publisher.publish(speed_msg)
